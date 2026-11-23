@@ -16,7 +16,10 @@ The roast:
 node main.ts
 ```
 
-It prints the character count and writes the line to `/output/entry.txt`.
+It validates the line first — single line, non-empty, no leading or trailing
+whitespace, at most 200 characters, at least 3 words — then writes it to
+`/output/entry.txt` and verifies the file on disk byte-for-byte matches the
+roast. It prints the character count and byte size on success.
 
 ---
 

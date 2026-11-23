@@ -1,35 +1,58 @@
-// Roast entry for make.fun's "One-Line Roast: The Gadget You Use Every Day"
-// bounty. Writes one single-line roast (123 characters) to
-// /output/entry.txt. Node 22, no dependencies.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 
-// The roast: a smartwatch that tracks everything and still delivers the
-// most useless verdict possible — it lives on your wrist and reports back
-// like a smug roommate who noticed nothing new.
 const ROAST =
   "My smartwatch tracks my sleep, my steps, and my stress, then reports I'm tired, sedentary, and tense — thanks, I live here.";
 
-// Length guard: the bounty requires one line of 1-200 characters.
-// Fail loudly instead of writing an out-of-spec entry.
-const MAX_ROAST_LENGTH = 200;
-if (
-  ROAST.trim().length < 1 ||
-  ROAST.length > MAX_ROAST_LENGTH ||
-  /[\r\n]/.test(ROAST)
-) {
-  throw new Error(
-    `Roast must be a single line of 1-${MAX_ROAST_LENGTH} characters, got ${ROAST.length} characters.`,
-  );
+const OUT_DIR = "/output";
+const OUT_FILE = `${OUT_DIR}/entry.txt`;
+const MAX_CHARS = 200;
+
+function fail(message: string): never {
+  throw new Error(`roast check failed: ${message}`);
 }
 
-let outPath = "/output/entry.txt";
-try {
-  mkdirSync("/output", { recursive: true });
-  writeFileSync(outPath, ROAST, "utf8");
-} catch {
-  // Sandbox without a writable /output: write beside the program.
-  mkdirSync("output", { recursive: true });
-  outPath = "output/entry.txt";
-  writeFileSync(outPath, ROAST, "utf8");
+function checkRoast(line: string): void {
+  if (line.trim().length === 0) {
+    fail("the roast is empty or only whitespace");
+  }
+  if (line.includes("\n") || line.includes("\r")) {
+    fail("the roast must be a single line");
+  }
+  if (line !== line.trim()) {
+    fail("the roast has leading or trailing whitespace");
+  }
+  const chars = [...line];
+  if (chars.length > MAX_CHARS) {
+    fail(`the roast is ${chars.length} characters, over the ${MAX_CHARS} limit`);
+  }
+  const words = line.trim().split(/\s+/);
+  if (words.length < 3) {
+    fail(`the roast has only ${words.length} word(s); a roast needs at least 3 words`);
+  }
 }
-console.log(`Wrote ${ROAST.length} characters to ${outPath}`);
+
+function main(): void {
+  checkRoast(ROAST);
+
+  const charCount = [...ROAST].length;
+  const lineCount = ROAST.split("\n").length;
+  if (lineCount !== 1) {
+    fail(`expected exactly 1 line, found ${lineCount}`);
+  }
+
+  mkdirSync(OUT_DIR, { recursive: true });
+  writeFileSync(OUT_FILE, ROAST, "utf8");
+
+  const written = readFileSync(OUT_FILE, "utf8");
+  if (written !== ROAST) {
+    fail("the file on disk does not match the roast");
+  }
+  const bytes = statSync(OUT_FILE).size;
+  if (bytes === 0) {
+    fail("the output file is empty");
+  }
+
+  console.log(`roast OK: ${charCount} characters, ${bytes} bytes -> ${OUT_FILE}`);
+}
+
+main();
